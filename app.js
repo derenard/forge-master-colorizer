@@ -1,0 +1,122 @@
+const { useState, useMemo } = React;
+
+function hexToRgb(hex) {
+  const cleaned = hex.replace('#', '');
+  const bigint = parseInt(cleaned, 16);
+  return [(bigint >> 16) & 255, (bigint >> 8) & 255, bigint & 255];
+}
+
+function rgbToHex(r, g, b) {
+  const toHex = (n) => n.toString(16).padStart(2, '0').toUpperCase();
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function lerp(a, b, t) {
+  return Math.round(a + (b - a) * t);
+}
+
+function makeGradientColors(startHex, endHex, length) {
+  if (length <= 0) return [];
+  const [sr, sg, sb] = hexToRgb(startHex);
+  const [er, eg, eb] = hexToRgb(endHex);
+  if (length === 1) {
+    return [rgbToHex(sr, sg, sb)];
+  }
+  const colors = [];
+  for (let i = 0; i < length; i++) {
+    const t = length === 1 ? 0 : i / (length - 1);
+    const r = lerp(sr, er, t);
+    const g = lerp(sg, eg, t);
+    const b = lerp(sb, eb, t);
+    colors.push(rgbToHex(r, g, b));
+  }
+  return colors;
+}
+
+function ColorizerApp() {
+  const [text, setText] = useState("");
+  const [startColor, setStartColor] = useState('#FF0000');
+  const [endColor, setEndColor] = useState('#110000');
+  const [copyStatus, setCopyStatus] = useState('');
+
+  const chars = useMemo(() => Array.from(text), [text]);
+  const colors = useMemo(() => makeGradientColors(startColor, endColor, chars.length), [startColor, endColor, chars.length]);
+
+  const spans = chars.map((ch, idx) => {
+    const hex = colors[idx] || startColor;
+    return (
+      <span key={idx} className="char" style={{ color: hex }}>
+        {ch}
+      </span>
+    );
+  });
+
+  // Build the copy string in format <#HEX>char for each character
+  const formattedOutput = chars.map((ch, idx) => {
+    const hex = colors[idx] || startColor;
+    return `<${hex}>${ch}`;
+  }).join('');
+
+  async function copyToClipboard() {
+    try {
+      await navigator.clipboard.writeText(formattedOutput);
+      setCopyStatus('Copied!');
+      setTimeout(() => setCopyStatus(''), 1500);
+    } catch (err) {
+      setCopyStatus('Copy failed');
+      console.error('copy failed', err);
+    }
+  }
+
+  return (
+    <div className="container">
+      <h1 style={{marginBottom: "6px"}}><span style={{color: "rgb(255, 0, 0)"}}>C</span><span style={{color: "rgb(225, 0, 0)"}}>o</span><span style={{color: "rgb(196, 0, 0)"}}>l</span><span style={{color: "rgb(166, 0, 0)"}}>o</span><span style={{color: "rgb(136, 0, 0)"}}>r</span><span style={{color: "rgb(106, 0, 0)"}}>i</span><span style={{color: "rgb(77, 0, 0)"}}>z</span><span style={{color: "rgb(47, 0, 0)"}}>e</span><span style={{color: "rgb(17, 0, 0)"}}>r</span></h1>
+      <h5 style={{marginTop: "0px"}}>DaDerp</h5>
+
+      <div className="controls">
+        <label>
+          Text:
+          <input
+            type="text"
+            className="text-input"
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Enter text to colorize"
+          />
+        </label>
+
+        <label>
+          Start color:
+          <input type="color" value={startColor} onChange={(e) => setStartColor(e.target.value)} />
+          <input type="text" value={startColor} onChange={(e) => setStartColor(e.target.value)} className="hex-input" />
+        </label>
+
+        <label>
+          End color:
+          <input type="color" value={endColor} onChange={(e) => setEndColor(e.target.value)} />
+          <input type="text" value={endColor} onChange={(e) => setEndColor(e.target.value)} className="hex-input" />
+        </label>
+      </div>
+
+      <section className="preview">
+        <h2>Rendered example</h2>
+        <div className="rendered" aria-live="polite">{spans.length ? spans : <em>(empty)</em>}</div>
+      </section>
+
+      <section className="output">
+        <h2>Formatted output</h2>
+        <textarea readOnly value={formattedOutput} rows={4} />
+        <div className="actions">
+          <button onClick={copyToClipboard}>Copy colorized text</button>
+          <span className="status">{copyStatus}</span>
+        </div>
+      </section>
+
+      <footer>
+        <small>Each character is prefixed with &lt;#HEX&gt; when copied (e.g. &lt;#FF0000&gt;R&lt;#00FF00&gt;G&lt;#0000FF&gt;B)</small>
+      </footer>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ColorizerApp />);

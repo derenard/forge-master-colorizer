@@ -1,0 +1,12 @@
+{
+  "version": "1.0",
+  "timestamp": "2025-11-23T22:49:17.329Z",
+  "hotspots": [],
+  "config": {
+    "maxPoolSize": 100,
+    "minComplexityThreshold": 10,
+    "enablePersistence": true,
+    "autoRefreshInterval": 0,
+    "fileChangeDebounceMs": 500
+  }
+}
