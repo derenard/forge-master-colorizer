@@ -56,6 +56,40 @@ function makeGoldenColors(length) {
   return colors;
 }
 
+function makeFadeInColors(length, baseColor) {
+  if (length <= 0) return [];
+  const cleaned = baseColor.replace('#', '');
+  const colors = [];
+  const minAlpha = 0x10;
+  const maxAlpha = 0xff;
+  const alphaRange = maxAlpha - minAlpha;
+  
+  for (let i = 0; i < length; i++) {
+    const t = length === 1 ? 1 : i / (length - 1);
+    const alpha = Math.round(minAlpha + alphaRange * t);
+    const alphaHex = alpha.toString(16).padStart(2, '0').toUpperCase();
+    colors.push(`#${cleaned}${alphaHex}`);
+  }
+  return colors;
+}
+
+function makeFadeOutColors(length, baseColor) {
+  if (length <= 0) return [];
+  const cleaned = baseColor.replace('#', '');
+  const colors = [];
+  const minAlpha = 0x10;
+  const maxAlpha = 0xff;
+  const alphaRange = maxAlpha - minAlpha;
+  
+  for (let i = 0; i < length; i++) {
+    const t = length === 1 ? 0 : i / (length - 1);
+    const alpha = Math.round(maxAlpha - alphaRange * t);
+    const alphaHex = alpha.toString(16).padStart(2, '0').toUpperCase();
+    colors.push(`#${cleaned}${alphaHex}`);
+  }
+  return colors;
+}
+
 function isVowel(char) {
   return /[aeiouAEIOU]/.test(char);
 }
@@ -94,11 +128,20 @@ function ColorizerApp() {
   const [consonantColor, setConsonantColor] = useState('#FFFF00');
   const [vowelColor, setVowelColor] = useState('#00AAFF');
   const [goldenMode, setGoldenMode] = useState(false);
+  const [fadeInMode, setFadeInMode] = useState(false);
+  const [fadeOutMode, setFadeOutMode] = useState(false);
+  const [fadeColor, setFadeColor] = useState('#FF0000');
   const [copyStatus, setCopyStatus] = useState('');
 
   const chars = useMemo(() => Array.from(text), [text]);
   const colors = useMemo(() => {
-    if (goldenMode) {
+    if (fadeInMode) {
+      // Return fade in colors from low to full opacity
+      return makeFadeInColors(chars.length, fadeColor);
+    } else if (fadeOutMode) {
+      // Return fade out colors from full to low opacity
+      return makeFadeOutColors(chars.length, fadeColor);
+    } else if (goldenMode) {
       // Return golden shimmer colors
       return makeGoldenColors(chars.length);
     } else if (consonantVowelMode) {
@@ -109,7 +152,7 @@ function ColorizerApp() {
     } else {
       return makeGradientColors(startColor, endColor, chars.length);
     }
-  }, [goldenMode, consonantVowelMode, consonantColor, vowelColor, rainbowMode, startColor, endColor, chars.length]);
+  }, [fadeInMode, fadeOutMode, fadeColor, goldenMode, consonantVowelMode, consonantColor, vowelColor, rainbowMode, startColor, endColor, chars.length]);
 
   const spans = chars.map((ch, idx) => {
     const hex = colors[idx] || startColor;
@@ -208,6 +251,32 @@ function ColorizerApp() {
           />
           Golden text
         </label>
+
+        <label className="rainbow-toggle">
+          <input
+            type="checkbox"
+            checked={fadeInMode}
+            onChange={(e) => setFadeInMode(e.target.checked)}
+          />
+          Fade in
+        </label>
+
+        <label className="rainbow-toggle">
+          <input
+            type="checkbox"
+            checked={fadeOutMode}
+            onChange={(e) => setFadeOutMode(e.target.checked)}
+          />
+          Fade out
+        </label>
+
+        {(fadeInMode || fadeOutMode) && (
+          <label>
+            Fade color:
+            <input type="color" value={fadeColor} onChange={(e) => setFadeColor(e.target.value)} />
+            <input type="text" value={fadeColor} onChange={(e) => setFadeColor(e.target.value)} className="hex-input" />
+          </label>
+        )}
 
         {consonantVowelMode && (
           <>
