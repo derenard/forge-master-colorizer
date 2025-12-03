@@ -45,6 +45,17 @@ function makeRainbowColors(length) {
   return colors;
 }
 
+function makeGoldenColors(length) {
+  if (length <= 0) return [];
+  const goldenColors = ['#ffcc00', '#ffdd22', '#ffee55', '#ffffaa', '#ffee55', '#ffdd22'];
+  const colors = [];
+  for (let i = 0; i < length; i++) {
+    const colorIdx = i % goldenColors.length;
+    colors.push(goldenColors[colorIdx]);
+  }
+  return colors;
+}
+
 function isVowel(char) {
   return /[aeiouAEIOU]/.test(char);
 }
@@ -82,11 +93,15 @@ function ColorizerApp() {
   const [consonantVowelMode, setConsonantVowelMode] = useState(false);
   const [consonantColor, setConsonantColor] = useState('#FFFF00');
   const [vowelColor, setVowelColor] = useState('#00AAFF');
+  const [goldenMode, setGoldenMode] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
 
   const chars = useMemo(() => Array.from(text), [text]);
   const colors = useMemo(() => {
-    if (consonantVowelMode) {
+    if (goldenMode) {
+      // Return golden shimmer colors
+      return makeGoldenColors(chars.length);
+    } else if (consonantVowelMode) {
       // Return consonant or vowel color based on character type
       return chars.map(ch => isVowel(ch) ? vowelColor : consonantColor);
     } else if (rainbowMode) {
@@ -94,7 +109,7 @@ function ColorizerApp() {
     } else {
       return makeGradientColors(startColor, endColor, chars.length);
     }
-  }, [consonantVowelMode, consonantColor, vowelColor, rainbowMode, startColor, endColor, chars.length]);
+  }, [goldenMode, consonantVowelMode, consonantColor, vowelColor, rainbowMode, startColor, endColor, chars.length]);
 
   const spans = chars.map((ch, idx) => {
     const hex = colors[idx] || startColor;
@@ -183,6 +198,15 @@ function ColorizerApp() {
             onChange={(e) => setConsonantVowelMode(e.target.checked)}
           />
           Consonant/Vowel mode
+        </label>
+
+        <label className="rainbow-toggle">
+          <input
+            type="checkbox"
+            checked={goldenMode}
+            onChange={(e) => setGoldenMode(e.target.checked)}
+          />
+          Golden text
         </label>
 
         {consonantVowelMode && (
