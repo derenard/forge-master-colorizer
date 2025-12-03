@@ -57,6 +57,23 @@ function ColorizerApp() {
     return `<${hex}>${ch}`;
   }).join('');
 
+  const isAtLimit = formattedOutput.length > 280;
+
+  function handleTextChange(e) {
+    const newText = e.target.value;
+    const newChars = Array.from(newText);
+    const newColors = makeGradientColors(startColor, endColor, newChars.length);
+    const newOutput = newChars.map((ch, idx) => {
+      const hex = newColors[idx] || startColor;
+      return `<${hex}>${ch}`;
+    }).join('');
+    
+    // Only allow the change if it doesn't exceed 280 characters
+    if (newOutput.length <= 280) {
+      setText(newText);
+    }
+  }
+
   async function copyToClipboard() {
     try {
       await navigator.clipboard.writeText(formattedOutput);
@@ -80,8 +97,9 @@ function ColorizerApp() {
             type="text"
             className="text-input"
             value={text}
-            onChange={(e) => setText(e.target.value)}
+            onChange={handleTextChange}
             placeholder="Enter text to colorize"
+            disabled={isAtLimit}
           />
         </label>
 
@@ -105,6 +123,7 @@ function ColorizerApp() {
 
       <section className="output">
         <h2>Formatted output</h2>
+        {isAtLimit && <div className="limit-warning">⚠️ Output limit reached (280 characters max)</div>}
         <textarea readOnly value={formattedOutput} rows={4} />
         <div className="actions">
           <button onClick={copyToClipboard}>Copy colorized text</button>
