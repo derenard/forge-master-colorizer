@@ -195,6 +195,68 @@ function ColorizerApp() {
     }
   }
 
+  function handleRainbowModeChange(checked) {
+    if (checked) {
+      setRainbowMode(true);
+      setConsonantVowelMode(false);
+      setGoldenMode(false);
+      setFadeInMode(false);
+      setFadeOutMode(false);
+    } else {
+      setRainbowMode(false);
+    }
+  }
+
+  function handleConsonantVowelModeChange(checked) {
+    if (checked) {
+      setRainbowMode(false);
+      setConsonantVowelMode(true);
+      setGoldenMode(false);
+      setFadeInMode(false);
+      setFadeOutMode(false);
+    } else {
+      setConsonantVowelMode(false);
+    }
+  }
+
+  function handleGoldenModeChange(checked) {
+    if (checked) {
+      setRainbowMode(false);
+      setConsonantVowelMode(false);
+      setGoldenMode(true);
+      setFadeInMode(false);
+      setFadeOutMode(false);
+    } else {
+      setGoldenMode(false);
+    }
+  }
+
+  function handleFadeInModeChange(checked) {
+    if (checked) {
+      setRainbowMode(false);
+      setConsonantVowelMode(false);
+      setGoldenMode(false);
+      setFadeInMode(true);
+      setFadeOutMode(false);
+    } else {
+      setFadeInMode(false);
+    }
+  }
+
+  function handleFadeOutModeChange(checked) {
+    if (checked) {
+      setRainbowMode(false);
+      setConsonantVowelMode(false);
+      setGoldenMode(false);
+      setFadeInMode(false);
+      setFadeOutMode(true);
+    } else {
+      setFadeOutMode(false);
+    }
+  }
+
+  const isAnyModeActive = rainbowMode || consonantVowelMode || goldenMode || fadeInMode || fadeOutMode;
+
   return (
     <div className="container">
       <h1 style={{marginBottom: "6px"}}><span style={{color: "rgb(255, 0, 0)"}}>C</span><span style={{color: "rgb(225, 0, 0)"}}>o</span><span style={{color: "rgb(196, 0, 0)"}}>l</span><span style={{color: "rgb(166, 0, 0)"}}>o</span><span style={{color: "rgb(136, 0, 0)"}}>r</span><span style={{color: "rgb(106, 0, 0)"}}>i</span><span style={{color: "rgb(77, 0, 0)"}}>z</span><span style={{color: "rgb(47, 0, 0)"}}>e</span><span style={{color: "rgb(17, 0, 0)"}}>r</span></h1>
@@ -215,21 +277,21 @@ function ColorizerApp() {
 
         <label>
           Start color:
-          <input type="color" value={startColor} onChange={(e) => setStartColor(e.target.value)} disabled={rainbowMode} />
-          <input type="text" value={startColor} onChange={(e) => setStartColor(e.target.value)} className="hex-input" disabled={rainbowMode} />
+          <input type="color" value={startColor} onChange={(e) => setStartColor(e.target.value)} disabled={isAnyModeActive} />
+          <input type="text" value={startColor} onChange={(e) => setStartColor(e.target.value)} className="hex-input" disabled={isAnyModeActive} />
         </label>
 
         <label>
           End color:
-          <input type="color" value={endColor} onChange={(e) => setEndColor(e.target.value)} disabled={rainbowMode} />
-          <input type="text" value={endColor} onChange={(e) => setEndColor(e.target.value)} className="hex-input" disabled={rainbowMode} />
+          <input type="color" value={endColor} onChange={(e) => setEndColor(e.target.value)} disabled={isAnyModeActive} />
+          <input type="text" value={endColor} onChange={(e) => setEndColor(e.target.value)} className="hex-input" disabled={isAnyModeActive} />
         </label>
 
         <label className="rainbow-toggle">
           <input
             type="checkbox"
             checked={rainbowMode}
-            onChange={(e) => setRainbowMode(e.target.checked)}
+            onChange={(e) => handleRainbowModeChange(e.target.checked)}
           />
           Rainbow mode
         </label>
@@ -238,7 +300,7 @@ function ColorizerApp() {
           <input
             type="checkbox"
             checked={consonantVowelMode}
-            onChange={(e) => setConsonantVowelMode(e.target.checked)}
+            onChange={(e) => handleConsonantVowelModeChange(e.target.checked)}
           />
           Consonant/Vowel mode
         </label>
@@ -247,7 +309,7 @@ function ColorizerApp() {
           <input
             type="checkbox"
             checked={goldenMode}
-            onChange={(e) => setGoldenMode(e.target.checked)}
+            onChange={(e) => handleGoldenModeChange(e.target.checked)}
           />
           Golden text
         </label>
@@ -256,7 +318,7 @@ function ColorizerApp() {
           <input
             type="checkbox"
             checked={fadeInMode}
-            onChange={(e) => setFadeInMode(e.target.checked)}
+            onChange={(e) => handleFadeInModeChange(e.target.checked)}
           />
           Fade in
         </label>
@@ -265,7 +327,7 @@ function ColorizerApp() {
           <input
             type="checkbox"
             checked={fadeOutMode}
-            onChange={(e) => setFadeOutMode(e.target.checked)}
+            onChange={(e) => handleFadeOutModeChange(e.target.checked)}
           />
           Fade out
         </label>
