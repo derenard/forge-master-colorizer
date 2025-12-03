@@ -33,14 +33,33 @@ function makeGradientColors(startHex, endHex, length) {
   return colors;
 }
 
+const RAINBOW_COLORS = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'];
+
+function makeRainbowColors(length) {
+  if (length <= 0) return [];
+  const colors = [];
+  for (let i = 0; i < length; i++) {
+    const colorIdx = i % RAINBOW_COLORS.length;
+    colors.push(RAINBOW_COLORS[colorIdx]);
+  }
+  return colors;
+}
+
 function ColorizerApp() {
   const [text, setText] = useState("");
   const [startColor, setStartColor] = useState('#FF0000');
   const [endColor, setEndColor] = useState('#110000');
+  const [rainbowMode, setRainbowMode] = useState(false);
   const [copyStatus, setCopyStatus] = useState('');
 
   const chars = useMemo(() => Array.from(text), [text]);
-  const colors = useMemo(() => makeGradientColors(startColor, endColor, chars.length), [startColor, endColor, chars.length]);
+  const colors = useMemo(() => {
+    if (rainbowMode) {
+      return makeRainbowColors(chars.length);
+    } else {
+      return makeGradientColors(startColor, endColor, chars.length);
+    }
+  }, [rainbowMode, startColor, endColor, chars.length]);
 
   const spans = chars.map((ch, idx) => {
     const hex = colors[idx] || startColor;
@@ -62,7 +81,9 @@ function ColorizerApp() {
   function handleTextChange(e) {
     const newText = e.target.value;
     const newChars = Array.from(newText);
-    const newColors = makeGradientColors(startColor, endColor, newChars.length);
+    const newColors = rainbowMode
+      ? makeRainbowColors(newChars.length)
+      : makeGradientColors(startColor, endColor, newChars.length);
     const newOutput = newChars.map((ch, idx) => {
       const hex = newColors[idx] || startColor;
       return `<${hex}>${ch}`;
@@ -105,14 +126,23 @@ function ColorizerApp() {
 
         <label>
           Start color:
-          <input type="color" value={startColor} onChange={(e) => setStartColor(e.target.value)} />
-          <input type="text" value={startColor} onChange={(e) => setStartColor(e.target.value)} className="hex-input" />
+          <input type="color" value={startColor} onChange={(e) => setStartColor(e.target.value)} disabled={rainbowMode} />
+          <input type="text" value={startColor} onChange={(e) => setStartColor(e.target.value)} className="hex-input" disabled={rainbowMode} />
         </label>
 
         <label>
           End color:
-          <input type="color" value={endColor} onChange={(e) => setEndColor(e.target.value)} />
-          <input type="text" value={endColor} onChange={(e) => setEndColor(e.target.value)} className="hex-input" />
+          <input type="color" value={endColor} onChange={(e) => setEndColor(e.target.value)} disabled={rainbowMode} />
+          <input type="text" value={endColor} onChange={(e) => setEndColor(e.target.value)} className="hex-input" disabled={rainbowMode} />
+        </label>
+
+        <label className="rainbow-toggle">
+          <input
+            type="checkbox"
+            checked={rainbowMode}
+            onChange={(e) => setRainbowMode(e.target.checked)}
+          />
+          Rainbow mode
         </label>
       </div>
 
