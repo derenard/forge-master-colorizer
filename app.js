@@ -45,21 +45,56 @@ function makeRainbowColors(length) {
   return colors;
 }
 
+function isVowel(char) {
+  return /[aeiouAEIOU]/.test(char);
+}
+
+function optimizeColorCodes(chars, colors) {
+  if (chars.length === 0) return '';
+  
+  let result = '';
+  let currentColor = colors[0];
+  let currentGroup = chars[0];
+  
+  for (let i = 1; i < chars.length; i++) {
+    const nextColor = colors[i];
+    if (nextColor === currentColor) {
+      // Same color, append to current group
+      currentGroup += chars[i];
+    } else {
+      // Color changed, output current group with color code
+      result += `<${currentColor}>${currentGroup}`;
+      currentColor = nextColor;
+      currentGroup = chars[i];
+    }
+  }
+  
+  // Output the last group
+  result += `<${currentColor}>${currentGroup}`;
+  return result;
+}
+
 function ColorizerApp() {
   const [text, setText] = useState("");
   const [startColor, setStartColor] = useState('#FF0000');
   const [endColor, setEndColor] = useState('#110000');
   const [rainbowMode, setRainbowMode] = useState(false);
+  const [consonantVowelMode, setConsonantVowelMode] = useState(false);
+  const [consonantColor, setConsonantColor] = useState('#FFFF00');
+  const [vowelColor, setVowelColor] = useState('#00AAFF');
   const [copyStatus, setCopyStatus] = useState('');
 
   const chars = useMemo(() => Array.from(text), [text]);
   const colors = useMemo(() => {
-    if (rainbowMode) {
+    if (consonantVowelMode) {
+      // Return consonant or vowel color based on character type
+      return chars.map(ch => isVowel(ch) ? vowelColor : consonantColor);
+    } else if (rainbowMode) {
       return makeRainbowColors(chars.length);
     } else {
       return makeGradientColors(startColor, endColor, chars.length);
     }
-  }, [rainbowMode, startColor, endColor, chars.length]);
+  }, [consonantVowelMode, consonantColor, vowelColor, rainbowMode, startColor, endColor, chars.length]);
 
   const spans = chars.map((ch, idx) => {
     const hex = colors[idx] || startColor;
@@ -70,24 +105,20 @@ function ColorizerApp() {
     );
   });
 
-  // Build the copy string in format <#HEX>char for each character
-  const formattedOutput = chars.map((ch, idx) => {
-    const hex = colors[idx] || startColor;
-    return `<${hex}>${ch}`;
-  }).join('');
+  // Build the copy string in format <#HEX>char for each character, optimized for consecutive colors
+  const formattedOutput = optimizeColorCodes(chars, colors);
 
   const isAtLimit = formattedOutput.length > 280;
 
   function handleTextChange(e) {
     const newText = e.target.value;
     const newChars = Array.from(newText);
-    const newColors = rainbowMode
-      ? makeRainbowColors(newChars.length)
-      : makeGradientColors(startColor, endColor, newChars.length);
-    const newOutput = newChars.map((ch, idx) => {
-      const hex = newColors[idx] || startColor;
-      return `<${hex}>${ch}`;
-    }).join('');
+    const newColors = consonantVowelMode
+      ? newChars.map(ch => isVowel(ch) ? vowelColor : consonantColor)
+      : rainbowMode
+        ? makeRainbowColors(newChars.length)
+        : makeGradientColors(startColor, endColor, newChars.length);
+    const newOutput = optimizeColorCodes(newChars, newColors);
     
     // Only allow the change if it doesn't exceed 280 characters
     if (newOutput.length <= 280) {
@@ -144,6 +175,31 @@ function ColorizerApp() {
           />
           Rainbow mode
         </label>
+
+        <label className="rainbow-toggle">
+          <input
+            type="checkbox"
+            checked={consonantVowelMode}
+            onChange={(e) => setConsonantVowelMode(e.target.checked)}
+          />
+          Consonant/Vowel mode
+        </label>
+
+        {consonantVowelMode && (
+          <>
+            <label>
+              Consonant color:
+              <input type="color" value={consonantColor} onChange={(e) => setConsonantColor(e.target.value)} />
+              <input type="text" value={consonantColor} onChange={(e) => setConsonantColor(e.target.value)} className="hex-input" />
+            </label>
+
+            <label>
+              Vowel color:
+              <input type="color" value={vowelColor} onChange={(e) => setVowelColor(e.target.value)} />
+              <input type="text" value={vowelColor} onChange={(e) => setVowelColor(e.target.value)} className="hex-input" />
+            </label>
+          </>
+        )}
       </div>
 
       <section className="preview">
