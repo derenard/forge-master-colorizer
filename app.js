@@ -33,6 +33,48 @@ function makeGradientColors(startHex, endHex, length) {
   return colors;
 }
 
+// Generate a multi-stop gradient across an array of hex colors.
+// Distributes the gradient smoothly across all stops for the given length.
+function makeMultiGradientColors(stops, length) {
+  if (length <= 0) return [];
+  if (!stops || stops.length === 0) return [];
+  if (stops.length === 1) return Array(length).fill(stops[0]);
+
+  // Convert stops to rgb arrays
+  const rgbs = stops.map(s => hexToRgb(s));
+  const segments = stops.length - 1; // number of segments between stops
+
+  if (length === 1) {
+    // single character gets the first stop
+    return [stops[0]];
+  }
+
+  const out = [];
+  for (let i = 0; i < length; i++) {
+    // normalized position along whole gradient [0..1]
+    const t = i / (length - 1);
+    // which segment does this t fall into
+    let seg = Math.floor(t * segments);
+    if (seg >= segments) seg = segments - 1; // clamp (handles t === 1)
+    const localT = (t - (seg / segments)) * segments; // 0..1 within segment
+
+    const [sr, sg, sb] = rgbs[seg];
+    const [er, eg, eb] = rgbs[seg + 1];
+    const r = lerp(sr, er, localT);
+    const g = lerp(sg, eg, localT);
+    const b = lerp(sb, eb, localT);
+    out.push(rgbToHex(r, g, b));
+  }
+
+  return out;
+}
+
+function hexAverage(a, b) {
+  const [ar, ag, ab] = hexToRgb(a);
+  const [br, bg, bb] = hexToRgb(b);
+  return rgbToHex(Math.round((ar + br) / 2), Math.round((ag + bg) / 2), Math.round((ab + bb) / 2));
+}
+
 const RAINBOW_COLORS = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#8B00FF'];
 
 function makeRainbowColors(length) {
@@ -123,6 +165,8 @@ function ColorizerApp() {
   const [text, setText] = useState("");
   const [startColor, setStartColor] = useState('#FF0000');
   const [endColor, setEndColor] = useState('#110000');
+  // gradientColors is the list of color stops for multi-gradient (min 2, max 6)
+  const [gradientColors, setGradientColors] = useState([startColor, endColor]);
   const [rainbowMode, setRainbowMode] = useState(false);
   const [consonantVowelMode, setConsonantVowelMode] = useState(false);
   const [consonantColor, setConsonantColor] = useState('#FFFF00');
@@ -150,12 +194,13 @@ function ColorizerApp() {
     } else if (rainbowMode) {
       return makeRainbowColors(chars.length);
     } else {
-      return makeGradientColors(startColor, endColor, chars.length);
+      // multi-stop gradient using selected gradientColors
+      return makeMultiGradientColors(gradientColors, chars.length);
     }
-  }, [fadeInMode, fadeOutMode, fadeColor, goldenMode, consonantVowelMode, consonantColor, vowelColor, rainbowMode, startColor, endColor, chars.length]);
+  }, [fadeInMode, fadeOutMode, fadeColor, goldenMode, consonantVowelMode, consonantColor, vowelColor, rainbowMode, gradientColors, chars.length]);
 
   const spans = chars.map((ch, idx) => {
-    const hex = colors[idx] || startColor;
+    const hex = colors[idx] || (gradientColors && gradientColors[0]) || startColor;
     return (
       <span key={idx} className="char" style={{ color: hex }}>
         {ch}
@@ -171,11 +216,20 @@ function ColorizerApp() {
   function handleTextChange(e) {
     const newText = e.target.value;
     const newChars = Array.from(newText);
-    const newColors = consonantVowelMode
-      ? newChars.map(ch => isVowel(ch) ? vowelColor : consonantColor)
-      : rainbowMode
-        ? makeRainbowColors(newChars.length)
-        : makeGradientColors(startColor, endColor, newChars.length);
+    let newColors;
+    if (fadeInMode) {
+      newColors = makeFadeInColors(newChars.length, fadeColor);
+    } else if (fadeOutMode) {
+      newColors = makeFadeOutColors(newChars.length, fadeColor);
+    } else if (goldenMode) {
+      newColors = makeGoldenColors(newChars.length);
+    } else if (consonantVowelMode) {
+      newColors = newChars.map(ch => isVowel(ch) ? vowelColor : consonantColor);
+    } else if (rainbowMode) {
+      newColors = makeRainbowColors(newChars.length);
+    } else {
+      newColors = makeMultiGradientColors(gradientColors, newChars.length);
+    }
     const newOutput = optimizeColorCodes(newChars, newColors);
     
     // Only allow the change if it doesn't exceed 280 characters
@@ -255,6 +309,35 @@ function ColorizerApp() {
     }
   }
 
+  // Gradient stops management (min 2, max 6)
+  function updateGradientColor(idx, value) {
+    const copy = [...gradientColors];
+    copy[idx] = value;
+    setGradientColors(copy);
+    // keep start/end in sync for backwards compatibility
+    if (idx === 0) setStartColor(value);
+    if (idx === copy.length - 1) setEndColor(value);
+  }
+
+  function addGradientColor() {
+    if (gradientColors.length >= 6) return;
+    // insert a midpoint before the last stop
+    const copy = [...gradientColors];
+    const insertBefore = copy.length - 1;
+    const a = copy[insertBefore - 1];
+    const b = copy[insertBefore];
+    const mid = hexAverage(a, b);
+    copy.splice(insertBefore, 0, mid);
+    setGradientColors(copy);
+  }
+
+  function removeGradientColor(idx) {
+    if (gradientColors.length <= 2) return;
+    const copy = [...gradientColors];
+    copy.splice(idx, 1);
+    setGradientColors(copy);
+  }
+
   const isAnyModeActive = rainbowMode || consonantVowelMode || goldenMode || fadeInMode || fadeOutMode;
 
   return (
@@ -276,15 +359,21 @@ function ColorizerApp() {
         </label>
 
         <label>
-          Start color:
-          <input type="color" value={startColor} onChange={(e) => setStartColor(e.target.value)} disabled={isAnyModeActive} />
-          <input type="text" value={startColor} onChange={(e) => setStartColor(e.target.value)} className="hex-input" disabled={isAnyModeActive} />
-        </label>
-
-        <label>
-          End color:
-          <input type="color" value={endColor} onChange={(e) => setEndColor(e.target.value)} disabled={isAnyModeActive} />
-          <input type="text" value={endColor} onChange={(e) => setEndColor(e.target.value)} className="hex-input" disabled={isAnyModeActive} />
+          Gradient colors:
+          <div className="gradient-stops">
+            {gradientColors.map((c, idx) => (
+              <div key={idx} className="gradient-stop">
+                <input type="color" value={c} onChange={(e) => updateGradientColor(idx, e.target.value)} disabled={isAnyModeActive} />
+                <input type="text" value={c} onChange={(e) => updateGradientColor(idx, e.target.value)} className="hex-input" disabled={isAnyModeActive} />
+                {gradientColors.length > 2 && (
+                  <button type="button" onClick={() => removeGradientColor(idx)} disabled={isAnyModeActive}>Remove</button>
+                )}
+              </div>
+            ))}
+            <div>
+              <button type="button" onClick={addGradientColor} disabled={isAnyModeActive || gradientColors.length >= 6}>Add color</button>
+            </div>
+          </div>
         </label>
 
         <label className="rainbow-toggle">
